@@ -36,7 +36,8 @@
 * GitHub：`https://github.com/weilu-kong/Mosaico_EdgeTech-_2026.git`（空仓库；**截至本文写成时尚未推送**，用户需在 Mac 上 `git push -u origin master feature/vision && git push origin stable-stage3e-0.8.1`）。
 * 本地：`/Users/kongweilu/Development/Mosaico EdgeTech 2026/mosaico-experience`。
 * `master`：稳定的阶段 3e（固件 0.8.1）+ README(zh/en) + LICENSE(Apache-2.0) + 本文件。
-* `feature/vision`：阶段 4a 摄像头预览（固件 0.9.0）。
+* `feature/vision`：阶段 4a-4c 摄像头与手势控制（固件 0.9.3）。
+* `feature/magnetic-logo-left`：左侧开发板磁吸 M5Stack Logo 模式（设备已验证）。
 * 标签 `stable-stage3e-0.8.1`：稳定回退点（commit `4a3d044`）。
 * 提交署名要求：commit 信息末尾加 `Co-Authored-By: …` 与 `Claude-Session: …`（按当前会话的提示）。作者 `kongweilu <ypgzkfc@gmail.com>`，全局 git 配置未改动。
 
@@ -71,6 +72,7 @@ evidence/                      主机测试日志、22 屏截图、布局报告�
 | 日语离线语音（ESP-SR：AFE+WakeNet+MultiNet7，日语指令用音译英文登记；命令 ホーム/モーション/オーディオ/ゲーム/デバイス） | 已编码、已编译、已烧录(0.8.x)；**识别率/误唤醒率未测量**。0.8.0 曾因同时加载两个唤醒词在 `voice_fetch` 断言 PANIC（B43，推断原因），0.8.1 改为一次只加载一个(默认日语 `wn9l_ja_konnichihaesp_tts3`)，板上效果需用户反馈 |
 | 4a 相机预览+帧时间测量（`feature/vision`） | **设备已验证（2026-10-11）**：ESP-IDF 编译通过、已烧录；传感器 SC101IOT(1280x720 UYVY)，预览 15.6 fps(耗时 63.9 ms，DMA 等待 39.7 ms，PPA 变换 12.8 ms，字节对调 11.2 ms)，PSRAM 剩余 8399 KB，预设 1/8(rot 270 mirror x0 y1) 方向正向 |
 | 4c Tilt Maze「カメラ」手势跟踪控制与 ESP-Iris USB CDC0 日志（`feature/vision`） | **设备已验证（2026-10-13，`0.9.3-stage4c`）**：切换为 `hand_detect` (ESPDet-Pico 224×224)，Core 1 原生降采样 480×480→224×224，异步推理 ~6.8 fps；方案 A 高增益映射（18 px 死区 + 1.6× 增益，满偏 ±0.60 g），手部微动灵敏跟手，用户实测体验良好；菜单/HUD 画中画（PiP）实时预览手部跟踪框与准星十字；S31 高速 USB OTG CDC0 实现免 GPIO33 冲突的高速日志流（`scripts/iris_log.py` 实测 0B 丢包）；全套 RF 审计 PASS |
+| 左侧磁吸 M5Stack Logo 模式（`feature/magnetic-logo-left`） | **设备已验证（2026-10-15）**：右侧磁吸贴合时，左板自动秒切 M5Stack Logo 纯白全屏显示；分离恢复原有页面与相机管线；Flash 常量 RGB565 资源（~68.9 KB，零动态堆内存）；复用既有 BMM150 轮询做专用溢出/强磁饱和判定，保持原有罗盘滤波；P95 响应延迟 ≤500 ms；全套 RF 审计 PASS（0 findings） |
 
 | RF 实测、日本法规、8 小时稳定性、展台镜像验收 | **未开始** |
 
@@ -106,14 +108,15 @@ python3 ../scripts/rf_map_check.py <build>/mosaico_experience.map <build>/sdkcon
 * **4b（设备已验证，2026-10-13）**：实测 `espressif/human_face_detect` (MSRMNP-s8 V1) 在 ESP32-S31 上的速度为 **`46.6 ms / 21.4 fps`**。模型内嵌于 Flash `.rodata`。
 * **4c（设备已验证，2026-10-13）**：切换为 `hand_detect` (ESPDet-Pico 224×224)，Core 1 原生降采样 480×480→224×224，方案 A 高增益手势控制（18 px 死区 + 1.6× 增益），画中画实时跟踪。
 * **同构固件合并（设备已验证，2026-10-14）**：合并语音识别（ESP-SR）与手势跟踪（ESPDet）于一体（App ~5.28 MB，6 MB 分区），关闭屏幕黄色调试叠层（`EXP_TIMING_OVERLAY=0`），利用 ESP-Iris USB CDC0 流式输出日志，配置 `.bk_buffer_dis = true` 优化 DVP 内存。用户真机测试确认效果优异。
+* **4d 左侧磁吸 M5Stack Logo（设备已验证，2026-10-15，`feature/magnetic-logo-left`）**：针对右边缘第二块 MOSAICO 磁力贴合开发。复用 BMM150 饱和强磁识别 + 宿主单元测试状态机，居中呈现原尺寸等比缩放的 420×84 RGB565 M5Stack Logo，全白背景覆盖；贴合期间安全挂起 Camera 线程与触摸语音事件，分离后秒级恢复，全过程保持零 RF 激活。
 
 ## 9. 已知问题速览（完整见 `docs/10`）
 
-B19 板上 Recovery 已擦除 · B21 运行时无串口 · B32 BQ27220 配置被官方驱动改写(已改只读) · B38 罗盘偏差 · B39 3c 未上板 · B40 3d 未上板 · B41/B42 日语语音是"音译英语"+单唤醒词已验证 · B43 双唤醒词 PANIC · B44 4a 设备已验证 · B45 4b 人脸检测基准设备已验证 · B46 4c 手势跟踪与同构固件设备已验证。
+B19 板上 Recovery 已擦除 · B21 运行时无串口 · B32 BQ27220 配置被官方驱动改写(已改只读) · B38 罗盘偏差 · B39 3c 未上板 · B40 3d 未上板 · B41/B42 日语语音是"音译英语"+单唤醒词已验证 · B43 双唤醒词 PANIC · B44 4a 设备已验证 · B45 4b 人脸检测基准设备已验证 · B46 4c 手势跟踪与同构固件设备已验证 · B47 同构固件与 DVP 修复 · B48 左侧磁吸 M5Stack Logo 模式设备已验证。
 
 ## 10. 立即要做的事（按顺序）
 
-1. **推送 feature/vision 分支至远程 GitHub 仓库**。
+1. **推送 feature/vision 与 feature/magnetic-logo-left 分支至远程 GitHub 仓库**（待用户授权）。
 2. 长期：3c/3d 设备验证、罗盘问题、RF 实测与日本法规、8 小时稳定性、展台镜像验收。
 
 

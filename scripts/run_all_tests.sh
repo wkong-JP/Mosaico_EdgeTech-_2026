@@ -31,6 +31,9 @@ cc -std=c11 -O1 -g -fsanitize=address,undefined -Wall -Wextra -Wpedantic -Werror
 step "device sensor helpers (axis map, gyro mean; gcc with ASan/UBSan)"
 cc -std=c11 -O1 -g -fsanitize=address,undefined -Wall -Wextra -Wpedantic -Werror -lm \
    "$APP/tests/dev_sensors_core_test.c" -o /tmp/dev_sensors_core_bin -lm && /tmp/dev_sensors_core_bin || rc=1
+step "magnetic edge classifier and dock state machine (right dock, debounce; gcc with ASan/UBSan)"
+cc -std=c11 -O1 -g -fsanitize=address,undefined -Wall -Wextra -Wpedantic -Werror -I "$ROOT/firmware/main" \
+   "$APP/tests/dev_magnet_core_test.c" -o /tmp/dev_magnet_core_bin && /tmp/dev_magnet_core_bin || rc=1
 step "device I/O helpers (mic decimation, UI cues, motor limiter, slot classes, crash guard; gcc with ASan/UBSan)"
 cc -std=c11 -O1 -g -fsanitize=address,undefined -Wall -Wextra -Wpedantic -Werror -I "$ROOT/firmware/main" -I "$APP/main" \
    "$APP/tests/dev_io_core_test.c" -o /tmp/dev_io_core_bin -lm && /tmp/dev_io_core_bin || rc=1

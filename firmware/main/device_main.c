@@ -37,6 +37,8 @@ static dev_voice_status_t s_voice;     /* snapshot of the speech engine, refresh
 #include "dev_face_detect.h"
 #endif
 #include "dev_sensors_core.h"
+#include "dev_magnet.h"
+#include "assets/m5stack_logo.h"
 #include "esp_iris.h"
 #include "exp_dbglog.h"
 #include "exp_gfx.h"
@@ -880,6 +882,10 @@ static void fill_sensors(exp_sensors_t *s)
     s->voice_wake_idx = s_voice.vs.wake_idx;
     s->voice_prob_pct = s_voice.vs.prob_pct;
     s->voice_seq = s_voice.vs.seq;
+    if (dev_magnet_is_logo_active()) {
+        s->voice_event = EXP_VEV_NONE;
+        s->voice_cmd = EXP_VCMD_NONE;
+    }
 #endif
     s->heap_internal_free = (uint32_t)heap_caps_get_free_size(MALLOC_CAP_INTERNAL);
     s->heap_internal_total = (uint32_t)heap_caps_get_total_size(MALLOC_CAP_INTERNAL);
@@ -1042,6 +1048,10 @@ void app_main(void)
     for (;;) {
         dev_wdt_feed();
         const int64_t f0 = esp_timer_get_time();
+        dev_mag_dock_status_t dock_st;
+        dev_magnet_take_status(&dock_st);
+        const bool logo_active = dock_st.logo_active;
+
         exp_sensors_t s;
         fill_sensors(&s);
         exp_app_set_sensors(app, &s);
@@ -1063,29 +1073,34 @@ void app_main(void)
             const bool have = esp_lcd_touch_read_data(touch) == ESP_OK &&
                               esp_lcd_touch_get_data(touch, pt, &n, 1) == ESP_OK && n > 0;
             if (have) { last_x = pt[0].x; last_y = pt[0].y; last_touch_ms = (uint32_t)(esp_timer_get_time() / 1000); }
+            if (logo_active) {
+                if (app_down) { exp_app_pointer(app, last_x, last_y, false); app_down = false; }
+                was_down = false;
+            } else {
 #if EXP_VISION
-            if (have && !was_down) cam_swallow = cam_view_tap(last_x, last_y);   /* decided once per touch */
-            if (!have) cam_swallow = false;
-            const bool cam_owns __attribute__((unused)) = s_cam_view || cam_swallow;
+                if (have && !was_down) cam_swallow = cam_view_tap(last_x, last_y);   /* decided once per touch */
+                if (!have) cam_swallow = false;
+                const bool cam_owns __attribute__((unused)) = s_cam_view || cam_swallow;
 #else
-            const bool cam_owns __attribute__((unused)) = false;
+                const bool cam_owns __attribute__((unused)) = false;
 #endif
 #if EXP_DBGLOG
-            if (have && !was_down && !cam_owns) swallow = log_view_tap(last_x, last_y);   /* decided once per touch */
-            if (!have) swallow = false;
-            if (s_log_view || swallow || cam_owns) {
-                /* the log view owns the touch: the app sees nothing (a press it already got is released) */
-                if (app_down) { exp_app_pointer(app, last_x, last_y, false); app_down = false; }
-            } else
+                if (have && !was_down && !cam_owns) swallow = log_view_tap(last_x, last_y);   /* decided once per touch */
+                if (!have) swallow = false;
+                if (s_log_view || swallow || cam_owns) {
+                    /* the log view owns the touch: the app sees nothing (a press it already got is released) */
+                    if (app_down) { exp_app_pointer(app, last_x, last_y, false); app_down = false; }
+                } else
 #endif
-            if (have) {
-                exp_app_pointer(app, last_x, last_y, true);
-                app_down = true;
-            } else if (app_down) {
-                exp_app_pointer(app, last_x, last_y, false);
-                app_down = false;
+                if (have) {
+                    exp_app_pointer(app, last_x, last_y, true);
+                    app_down = true;
+                } else if (app_down) {
+                    exp_app_pointer(app, last_x, last_y, false);
+                    app_down = false;
+                }
+                was_down = have;
             }
-            was_down = have;
         }
 
         const int64_t u0 = esp_timer_get_time();
@@ -1098,9 +1113,11 @@ void app_main(void)
         if (steps < 1) steps = 1;
         time_debt_s -= (float)steps * (TICK_MS / 1000.0f);
         if (time_debt_s < 0.0f) time_debt_s = 0.0f;
-        for (int i = 0; i < steps; ++i) exp_app_update(app, TICK_MS / 1000.0f);
+        if (!logo_active) {
+            for (int i = 0; i < steps; ++i) exp_app_update(app, TICK_MS / 1000.0f);
+        }
 #if EXP_VISION
-        cam_sync(s_cam_view || exp_app_want_camera(app));
+        cam_sync(!logo_active && (s_cam_view || exp_app_want_camera(app)));
 #endif
 #if EXP_USE_MAG && EXP_USE_SENSORS
         {
@@ -1155,23 +1172,28 @@ void app_main(void)
         s_av_upd_us += ((r0 - u0) - s_av_upd_us) / 16;
         BeginDrawing();
         if (MosaicoFastFrameAvailable()) {
-#if EXP_VISION
-            if (s_cam_view) {
-                draw_cam_view();
+            if (logo_active) {
+                m5stack_logo_draw(s_fb[s_cur], BSP_LCD_H_RES);
+                dev_magnet_notify_presented();
             } else {
-                exp_app_render(app);
-                draw_cam_pip(app);
-            }
+#if EXP_VISION
+                if (s_cam_view) {
+                    draw_cam_view();
+                } else {
+                    exp_app_render(app);
+                    draw_cam_pip(app);
+                }
 #else
-            exp_app_render(app);
+                exp_app_render(app);
 #endif
 #if EXP_TIMING_OVERLAY
-            ov_now = last_total;
-            draw_timing_overlay(ov_now, ov_max, ov_draw, ov_present);
+                ov_now = last_total;
+                draw_timing_overlay(ov_now, ov_max, ov_draw, ov_present);
 #endif
 #if EXP_DBGLOG
-            if (s_log_view) draw_log_view();
+                if (s_log_view) draw_log_view();
 #endif
+            }
         }
         EndDrawing();              /* hands the finished frame to present() */
         const int64_t r1 = esp_timer_get_time();

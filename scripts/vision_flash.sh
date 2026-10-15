@@ -18,8 +18,8 @@ set -euo pipefail
 MODE="${1:-}"; PORT="${2:-}"
 EXPECT_MAC="1c:29:04:d0:a3:36"
 BUILD="${BUILD_DIR:-build_vision}"
-OFF_PT=0x8000; OFF_APP=0x10000; OFF_CORE=0x910000; CORE_SIZE=0x80000
-APP_MAX=$((0x500000))
+OFF_PT=0x8000; OFF_APP=0x10000; OFF_CORE=0xa10000; CORE_SIZE=0x80000
+APP_MAX=$((0x600000))
 STAMP="$BUILD/.table_checked"
 
 die() { echo "ERROR: $*" >&2; exit 1; }
@@ -45,7 +45,7 @@ if [[ "$MODE" == "check" ]]; then
   rm -f "$PT"
   echo "$TBL"
   NORM="$(echo "$TBL" | tr -d ' ')"
-  if echo "$NORM" | grep -q '^factory,app,factory,0x10000,5M' && echo "$NORM" | grep -q '^coredump,data,coredump,0x910000,512K'; then
+  if echo "$NORM" | grep -q '^factory,app,factory,0x10000,6M' && echo "$NORM" | grep -q '^coredump,data,coredump,0xa10000,512K'; then
     date +%s > "$STAMP"
     echo "table OK (voice/vision layout): the vision app can be written with update. Stamp recorded (valid 30 minutes)."
   else
@@ -70,7 +70,7 @@ fi
 [[ -f "$BUILD/mosaico_experience.bin" ]] || die "$BUILD/mosaico_experience.bin missing: build the vision image first"
 [[ -f "$STAMP" ]] && [[ -n "$(find "$STAMP" -mmin -30 2>/dev/null)" ]] || die "no successful 'check' in the last 30 minutes: run check first (it confirms the board and its partition table)"
 sz() { stat -f%z "$1" 2>/dev/null || stat -c%s "$1"; }
-(( $(sz "$BUILD/mosaico_experience.bin") <= APP_MAX )) || die "app does not fit the 5 MB factory partition"
+(( $(sz "$BUILD/mosaico_experience.bin") <= APP_MAX )) || die "app does not fit the 6 MB factory partition"
 # (no "grep -q" in a pipe: with pipefail it can fail on SIGPIPE although the string is there)
 VER_HITS=$(LC_ALL=C grep -a -c -- "-vision-" "$BUILD/mosaico_experience.bin" || true)
 (( VER_HITS > 0 )) || die "image is not a vision build (version string): refusing"

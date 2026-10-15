@@ -9,6 +9,7 @@
 #include "dev_voice.h"
 #endif
 #include "dev_joystick.h"
+#include "dev_magnet.h"
 #include "dev_sensors_core.h"
 #include "dev_slots.h"
 #include "dev_watchdog.h"
@@ -207,14 +208,22 @@ static void mag_open_all(void)
                      (int)EXP_MAG_LSB_PER_UT);
         }
     }
+    dev_magnet_init();
 }
 
 static void mag_poll(void)
 {
+    struct bmm150_mag_data raw_data[DEV_MAG_N] = {0};
+    bool raw_valid[DEV_MAG_N] = {false, false};
+
     for (int id = 0; id < DEV_MAG_N; ++id) {
         if (!s_mag_open[id]) continue;
         struct bmm150_mag_data d;
         const esp_err_t e = bsp_magnetometer_read((bsp_magnetometer_t)id, &d);
+        if (e == ESP_OK) {
+            raw_data[id] = d;
+            raw_valid[id] = true;
+        }
         portENTER_CRITICAL(&s_lock);
         if (e != ESP_OK) {
             ++s_d.mag_errors[id];
@@ -235,6 +244,23 @@ static void mag_poll(void)
         }
         portEXIT_CRITICAL(&s_lock);
     }
+
+    const dev_mag_sample_t dock_sample = {
+        .right = {
+            .valid = raw_valid[0],
+            .x = raw_data[0].x,
+            .y = raw_data[0].y,
+            .z = raw_data[0].z,
+        },
+        .left = {
+            .valid = raw_valid[1],
+            .x = raw_data[1].x,
+            .y = raw_data[1].y,
+            .z = raw_data[1].z,
+        },
+        .timestamp_ms = (uint32_t)(esp_timer_get_time() / 1000),
+    };
+    dev_magnet_process_sample(&dock_sample);
 }
 #endif
 
