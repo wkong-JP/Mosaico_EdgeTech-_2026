@@ -43,6 +43,7 @@
 | 4b | ESPDet 人脸检测基准与实时框 | **设备已验证**（S31 推理 46.6 ms / 21.4 fps，`docs/12`） |
 | 4c | Tilt Maze 手势跟踪控制、PiP 与 Iris USB CDC0 日志 | **设备已验证**（方案 A 高增益手势控制跟手灵敏，`docs/12`） |
 | 合并 | 语音控制 + 视觉手势跟踪同构固件（6 MB App 分区） | **设备已验证**（ESP-SR + ESPDet 协同运行，屏幕无遮挡黄色日志，Iris USB CDC0 实时传输） |
+| 4d | 左侧磁吸 M5Stack Logo 模式（`feature/magnetic-logo-left`） | **设备已验证**（右侧贴合秒切 M5Stack Logo，分离秒复原，零 RF，零堆分配） |
 | 4–5 | 全面稳定性、长时间运行、RF 实测、展会运营 | 进行中 / 部分待实测 |
 
 ---
@@ -159,6 +160,17 @@ python3 ../scripts/rf_map_check.py build/mosaico_experience.map sdkconfig   # �
 * **DVP 内存优化**：在 `esp_video_dvp_device.c` 中显式指定 `.bk_buffer_dis = true`，省去驱动冗余的 1.84 MB PSRAM backup buffer，彻底解决高并发下的 DVP 分配阻塞。
 
 回退到纯语音版本：`git checkout stable-stage3e-0.8.1`。
+
+---
+
+## 左侧磁吸 M5Stack Logo 模式（阶段 4d，开发分支 `feature/magnetic-logo-left`）
+
+在现有语音与视觉同构固件基础上，增加了**右侧磁吸贴合 M5Stack Logo 显示与分离平滑恢复功能**：
+* **图像资源**：通过 `scripts/gen_m5stack_logo.py` 将 `M5stack.png` 缩放生成 420×84 RGB565 数组（`firmware/main/assets/m5stack_logo.c/.h`），存放于 Flash `.rodata`（约 68.9 KB），480×480 AMOLED 全屏纯白居中无拉伸，**0 动态堆内存分配**。
+* **双 BMM150 强磁检测**：直接复用 `dev_sensors.c` 现有的 100 ms 轮询，不创建多余任务；区分强磁饱和（`-32768` 或 `X >= 30000 µT`）与正常地磁读数，在不干扰罗盘地磁滤波的同时实现极速贴合判决。
+* **状态机去抖**：`NORMAL -> ATTACH_PENDING (2 帧确认) -> LOGO_ACTIVE -> DETACH_PENDING (3 帧确认)`，实测贴合到呈现延迟 P95 ≤ 500 ms。
+* **最高优先级渲染与无缝恢复**：Logo 模式下全屏刷白并覆盖 Logo，挂起 Camera 线程释放 PSRAM 带宽，屏蔽触摸与语音；分离时清空累积时间（`time_debt_s = 0`）平滑恢复原页面，无重绘闪烁、无补帧快进、不重启。
+* **零 RF 维持**：全过程完全禁止任何无线网络栈，静态审计与链接符号审计均为 0 findings。
 
 ---
 

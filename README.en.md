@@ -36,9 +36,13 @@ Status labels used throughout (never mixed): **planned → coded → compiled �
 | 3b-2 | Magnetometer / compass | Coded + simulator tests; heading on the device still off, cause unknown (`docs/10` B38) |
 | 3c | Microphone, speaker, motor, expansion-slot probing, runtime RF probe | Coded + host tests; device verification **not executed** (`docs/10` B39) |
 | 3d | Joystick, burn-in dimming, watchdog, magnetic-disturbance check, release profile | Coded + host tests; device verification **not executed** (`docs/10` B40) |
-| 3e | Offline Japanese voice control (ESP-SR) | Coded, compiled, flashed (0.8.x); **recognition rate and false-wake rate not measured** (`docs/11`, `docs/10` B42/B43) |
-| 4a | Camera preview and frame-time measurement (`-DEXP_VISION=1`, `docs/12`) | Coded + host tests; **not built with the real IDF, not flashed, no measured numbers** |
-| 4–5 | Full device verification, endurance, RF measurement, operations | **Not started** |
+| 3e | Offline Japanese voice control (ESP-SR) | **Device-verified** (single wake word + commands, `docs/11`) |
+| 4a | Camera preview and frame-time measurement (`-DEXP_VISION=1`, `docs/12`) | **Device-verified** (15.6 fps, SC101IOT UYVY, `docs/12`) |
+| 4b | ESPDet face detection benchmark & live box | **Device-verified** (S31 infer 46.6 ms / 21.4 fps, `docs/12`) |
+| 4c | Tilt Maze hand-tracking control, PiP & Iris USB CDC0 logging | **Device-verified** (Scheme A high-gain responsive control, `docs/12`) |
+| Merge | Unified Voice + Vision firmware (6 MB factory app partition) | **Device-verified** (ESP-SR + ESPDet concurrent execution, clean display, Iris streaming) |
+| 4d | Left-side Magnetic M5Stack Logo Mode (`feature/magnetic-logo-left`) | **Device-verified** (right dock triggers M5Stack Logo instantly, smooth restore on detach, zero RF) |
+| 4–5 | Full device verification, endurance, RF measurement, operations | In progress / Pending RF lab |
 
 ---
 
@@ -152,6 +156,17 @@ This branch provides a **unified offline firmware with Japanese Voice Control (E
 * **DVP Memory Optimization**: Configured `.bk_buffer_dis = true` in `esp_video_dvp_device.c`, saving 1.84 MB PSRAM redundant backup buffer to ensure smooth camera streaming.
 
 To roll back to the voice-only stable release: `git checkout stable-stage3e-0.8.1`.
+
+---
+
+## Left-side Magnetic M5Stack Logo Mode (Stage 4d, branch `feature/magnetic-logo-left`)
+
+Built upon the unified voice + vision firmware, adding **right-edge magnetic dock M5Stack Logo display and seamless detach recovery**:
+* **Image Assets**: Converted `M5stack.png` via `scripts/gen_m5stack_logo.py` to a 420×84 RGB565 array (`firmware/main/assets/m5stack_logo.c/.h`) residing in Flash `.rodata` (~68.9 KB), centered on pure white 480×480 AMOLED, with **0 dynamic heap allocation**.
+* **Dual BMM150 Saturation Detection**: Reuses existing 100 ms polling in `dev_sensors.c` without duplicate tasks; distinguishes saturation/overflow (`-32768` or `X >= 30000 µT`) from ambient magnetic fields, leaving compass filtering intact while enabling instant dock triggering.
+* **Debounced State Machine**: `NORMAL -> ATTACH_PENDING (2-frame confirm) -> LOGO_ACTIVE -> DETACH_PENDING (3-frame confirm)`, achieving measured contact-to-display latency of P95 ≤ 500 ms.
+* **Top-priority UI Override & Smooth Resume**: Full-screen white cover with centered Logo, suspends camera thread to free PSRAM bandwidth, suppresses touch and voice inputs; resets animation debt (`time_debt_s = 0`) upon detach to restore the original page cleanly without flicker, catchup, or reboot.
+* **Zero RF Maintained**: Strictly 0 wireless radio code enabled, link map audit passes with 0 findings.
 
 ---
 

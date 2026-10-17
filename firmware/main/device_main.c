@@ -68,7 +68,7 @@ static const char *TAG = "exp_main";
 #endif
 #if EXP_VISION
 #define FW_VISION_TAG "-vision"
-#define FW_BASE_VERSION "0.9.3-stage4c"
+#define FW_BASE_VERSION "0.9.4-stage4d"
 #else
 #define FW_VISION_TAG ""
 #define FW_BASE_VERSION "0.8.1-stage3e"
