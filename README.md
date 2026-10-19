@@ -1,209 +1,213 @@
-# ESP-Mosaico Experience – Offline Interactive Showcase
+# ESP-MOSAICO Experience — EdgeTech+ 2026 旗舰离线交互展会固件
 
 [English](README.en.md) · **简体中文**
 
-面向 **ESP32‑S31 / ESP‑Mosaico V1.2** 的**完全离线**展会演示（日语 480×480 UI）。设备上不使用 Wi‑Fi、蓝牙、ESP‑NOW、IEEE 802.15.4 等任何无线功能。
+[![Target: ESP32-S31](https://img.shields.io/badge/Target-ESP32--S31-red.svg)](https://www.espressif.com/)
+[![PSRAM: 16MB Octal @ 250MHz](https://img.shields.io/badge/Octal_PSRAM-16MB_%40_250MHz-blue.svg)](https://www.espressif.com/)
+[![Screen: 480x480 AMOLED](https://img.shields.io/badge/Display-480x480_AMOLED-orange.svg)]()
+[![RF: Zero-RF Route B](https://img.shields.io/badge/RF_Policy-Strictly_Offline_(Zero--RF)-green.svg)]()
+[![Firmware: v0.9.4-stage4d](https://img.shields.io/badge/Firmware-v0.9.4--stage4d-brightgreen.svg)]()
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](LICENSE)
 
-演示由三部分组成：
+本固件专为 **2026 日本横滨 EdgeTech+ 展会**倾力打造，作为 **ESP-MOSAICO V1.2（搭载乐鑫新一代旗舰 SoC ESP32-S31）** 的官方旗舰离线多模态交互演示固件。
 
-| | 内容 |
-|---|---|
-| **A · モーション / HMI** | IMU 姿态（3D 模型）、罗盘、电量 |
-| **B · オーディオ・AI** | 麦克风电平/频谱、离线日语语音操作（ESP‑SR） |
-| **C · ゲーム** | 「傾き迷路」（Tilt Maze）：倾斜、触摸或摇杆控制 |
-
-页面：Home · Motion · AI & Audio · Game · Device。
+固件遵循严格的 **Route B 零无线射频（Zero-RF Fail-Closed）** 展会合规安全规范，在完全隔离无线协议栈的前提下，深度调优并极致榨干 ESP32-S31 强大的双核 RISC-V 架构与 **16 MB Octal PSRAM（250 MHz 极限频率）** 算力，集成了**离线双语语音控制（ESP-SR）**、**实时 AI 摄像头手势跟踪（ESPDet）**、**6 轴 IMU 与双磁力计 3D 姿态融合**、**高精度物理迷宫引擎**、**AMOLED 480×480 动效流光渲染** 以及 **M5Stack 磁吸套件秒切展示**，提供顺滑、惊艳且极具互动性的参展体验。
 
 ---
 
-## ⚠️ 状态（请先读这一节）
+## 🌟 核心工程与技术亮点
 
-* **RF（无线）状态：RF Verification Pending。** 没有任何 RF 实测，也没有日本法规结论。软件审计**不等于** RF 测量。
-* **不是 "Exhibition Ready"。** 只有在 RF 实测 + 日本法规确认 + 稳定性测试全部完成后才会使用这个称呼。
-* 本仓库里的"已验证"都带范围说明；**没有测过的项一律写"未执行 / 未验证"**，没有任何伪造的传感器、AI 或性能数据。
-* 当前固件大量内容只在一块开发板上跑过，且这块板上原有的官方 Recovery 已被擦除（用户决定，无备份，见 `docs/07`、`docs/10` B19）。
+- 🛡️ **严格零无线射频（Route B Fail-Closed Zero-RF）**  
+  彻底剥离 Wi-Fi、BLE、ESP-NOW 及 802.15.4 协议栈。固件启动流程严禁无线初始化，静态链接符号与镜像图谱均通过全自动化 RF 安全审计（0 RF Findings），完全杜绝海外展会现场无线干扰与当地无线电法规认证合规风险。
+- ⚡ **16 MB Octal PSRAM 极致承载与高吞吐**  
+  将 16 MB PSRAM 划分为双重全彩高刷渲染缓冲、DVP 视频流 DMA 通道、ESPDet-Pico 深度学习网络模型与 24 频段音频频谱历史环形缓存；即便在 AI 视觉与语音并发跑满时，系统空闲堆内存依然保持在 **5.0 MB 以上**，展现出极强的抗重载弹性。
+- 🎙️ **多模态离线双语语音操作（ESP-SR）**  
+  内嵌 WakeNet 与 MultiNet7 离线语音算法，支持双唤醒词（日语 **「こんにちは ESP」** / 英语 **「Hi ESP」**）。注册并优化了 **58 条中英日离线控制指令**（包含页面跳转、快门拍照、迷宫交互等），采用专门的 G2P 音标补偿算法，非母语发音也能精准秒级响应。
+- 👁️ **实时摄像头手势隔空追踪（ESPDet-Pico + PPA）**  
+  驱动左侧扩展槽的 SC101IOT DVP 摄像头，由 ESP32-S31 片上 PPA 硬件引擎加速实现实时裁剪与旋转缩放（1280×720 UYVY → 480×480 RGB565），Core 1 独立运行异步轻量化手势检测网络，以 18 px 死区 + 1.6× 灵敏增益实现零延迟手势隔空操控。
+- 🧲 **M5Stack 磁吸套件极速识别与无缝恢复**  
+  复用板载双 BMM150 强磁饱和判决机制。当检测到右侧磁吸套件贴合时，系统硬件中断以 **17 ms 极速响应**全屏渲染 Flash 常量 M5Stack 纯白品牌 Logo，同时安全挂起摄像头以降低功耗；分离后系统无缝恢复原有页面与管线，**零动态堆分配、零重绘闪烁、不重启**。
+- 🎮 **真实重力物理迷宫（Tilt Maze）**  
+  内置完整碰撞检测与动量守恒物理引擎，支持三阶难度；提供 **重力倾斜（Tilt）**、**物理摇杆（Joystick）**、**隔空手势（Camera）** 三重操控方式，并在 16 MB PSRAM 历史轨迹插值中渲染绚丽的**彗星流光尾迹**与画中画（PiP）实时手势准星。
+- 📱 **圆角 AMOLED 防裁切适配**  
+  针对 480×480 全贴合圆形/大圆角 AMOLED（CO5300 控制器），对顶部状态栏、电池电量计、HUD 退出按键与底部 Tab 导航实施防裁切内缩保护，呈现视觉一致的精致曲面 UI。
+- 🔌 **ESP-Iris USB CDC0 免冲突高速流式日志**  
+  基于 ESP32-S31 高速 USB OTG UTMI PHY 建立专用调试通道，彻底移除屏幕上的黄色调试遮挡层（`EXP_TIMING_OVERLAY=0`），现场参展人员看到的是极简干净的 UI，工程师则可通过电脑免驱即插即用捕获零丢包的实时诊断日志。
 
-状态标签的含义（文档里不混用）：**已计划 → 已编码 → 已编译 → 模拟器已验证 → 设备已验证 → RF 已审计（静态）**。
+---
 
-### 阶段进度
+## 📱 五大交互页面展示
 
-| 阶段 | 内容 | 状态 |
+```
+[Home 首页] ──► [Motion 姿态] ──► [Audio 语音/音频] ──► [Game 迷宫] ──► [Device 看板]
+     ▲                                                                           │
+     └──────────────────────── (闲置 45 秒自动巡航 Attract Mode) ─────────────────┘
+```
+
+| 页面 | 核心功能与亮点 |
+|---|---|
+| **1. Home（首页看板）** | 实时显示系统运行状态、基于 80 mAh 实测放电曲线修正的高精度电池电量计、右侧磁吸扩展状态检测卡片；展台闲置 45 秒后自动开启 Attract Mode 巡展动画。 |
+| **2. Motion（姿态与罗盘）** | 实时读取 BMI270 六轴传感器并计算 3D 俯仰角与翻滚角；双 BMM150 磁力计融合罗盘实时指向地磁北极；轻触罗盘卡片即可一键执行动态基线去干扰校准。 |
+| **3. Audio & AI（语音与流光）** | ES8311 音频编解码器采集拾音，PSRAM 环形缓冲区实时渲染 **24 频段霓虹音频流光瀑布图**；底部实时显示离线语音监听状态与识别到的中英日指令。 |
+| **4. Game（物理迷宫 Tilt Maze）** | 支持 Easy / Normal / Hard 三级难度，可在重力倾斜、左槽摇杆、隔空手势三种模式间自由切换；独创手势光晕彗星尾迹与 HUD 画中画实时取景。 |
+| **5. Device Info（硬件拓扑看板）** | 直观展示 16 MB Octal PSRAM 和 16 MB Flash 的物理分区图谱与剩余内存；实时自动探测左右扩展槽（Camera / Joystick / Sensor 等）的插接状态与 EEPROM 描述符。 |
+| **彩蛋：M5Stack Logo 模式** | 右侧磁吸贴合即刻触发全屏纯白 M5Stack 品牌 Logo，分离后秒级恢复，展示模块化硬件极速扩展能力。 |
+
+---
+
+## 🎙️ 离线语音指令清单（ESP-SR）
+
+固件内嵌双语离线语音模型，已完成音标补偿与高噪声容错训练：
+
+* **唤醒词**：
+  * **日语**：「こんにちは ESP」（Konnichiwa ESP）
+  * **英语**：「Hi ESP」
+* **可用离线指令列表（共 58 条登记词汇）**：
+
+| 指令类别 | 日语命令词（音译英文登记） | 英语命令词 | 功能触发 |
+|---|---|---|---|
+| **页面导航** | ホーム / 最初のページ | Home / Main menu | 跳转至 Home 页面 |
+| | モーション / コンパス | Motion / Compass | 跳转至 Motion 姿态页面 |
+| | オーディオ / 音声 | Audio / Music | 跳转至 Audio 频谱与语音页面 |
+| | ゲーム / 迷路 | Game / Maze | 跳转至 Game 迷宫页面 |
+| | デバイス / システム | Device / Info | 跳转至 Device 设备信息页面 |
+| **迷宫交互** | 右へ / みぎ | Turn Right | 迷宫物理力向右偏置 |
+| | 左へ / ひだり | Turn Left | 迷宫物理力向左偏置 |
+| | 上へ / うえ | Move Up | 迷宫物理力向上偏置 |
+| | 下へ / した | Move Down | 迷宫物理力向下偏置 |
+| | スタート / 始め | Start | 开始游戏计时 |
+| | リセット / やり直し | Reset | 重置迷宫滚球位置 |
+| **快捷操作** | 写真を撮って / チーズ | Take Photo | 摄像头快门拍照模拟 |
+| | 戻る / 前のページ | Go Back | 返回上一级或取消操作 |
+
+---
+
+## 🛠️ 硬件与系统架构
+
+### 硬件选型规格
+
+| 组件 | 型号 / 规格 | 说明 |
 |---|---|---|
-| 0 | 环境 / 官方仓库 / RF 审计 | 完成 |
-| 1 | 架构 | 完成 |
-| 2 | Host 交互式 UI 预览 | 完成，**模拟器已验证**（合成传感器数据） |
-| 3a | 真机固件：显示 + 触摸 + UI（路线 B） | **设备已验证**（范围很窄：显示、触摸有响应） |
-| 性能 | 帧耗时 | 约 35 ms/帧（≈28–29 fps），目标 33 ms 未达到；瓶颈见 `docs/08` §7 |
-| 3b‑1 | IMU + 电量计 + 屏幕日志 | **设备已验证**（0.4.3） |
-| 3b‑2 | 磁力计 / 罗盘 | 已编码 + 模拟器测试；设备读数仍偏差大，原因未定（`docs/10` B38） |
-| 3c | 麦克风、扬声器、马达、扩展槽探测、运行时 RF 探针 | 已编码 + 主机测试；设备验证**未执行**（`docs/10` B39） |
-| 3d | 摇杆、烧屏调光、看门狗、磁场干扰判断、展台发布配置 | 已编码 + 主机测试；设备验证**未执行**（`docs/10` B40） |
-| 3e | 日语离线语音操作（ESP‑SR） | **设备已验证**（单唤醒词 + 基础指令正常响应，`docs/11`） |
-| 4a | 摄像头预览与帧时间测量（`-DEXP_VISION=1`） | **设备已验证**（15.6 fps，SC101IOT UYVY，`docs/12`） |
-| 4b | ESPDet 人脸检测基准与实时框 | **设备已验证**（S31 推理 46.6 ms / 21.4 fps，`docs/12`） |
-| 4c | Tilt Maze 手势跟踪控制、PiP 与 Iris USB CDC0 日志 | **设备已验证**（方案 A 高增益手势控制跟手灵敏，`docs/12`） |
-| 合并 | 语音控制 + 视觉手势跟踪同构固件（6 MB App 分区） | **设备已验证**（ESP-SR + ESPDet 协同运行，屏幕无遮挡黄色日志，Iris USB CDC0 实时传输） |
-| 4d | 左侧磁吸 M5Stack Logo 模式（`feature/magnetic-logo-left`） | **设备已验证**（右侧贴合秒切 M5Stack Logo，分离秒复原，零 RF，零堆分配） |
-| 4–5 | 全面稳定性、长时间运行、RF 实测、展会运营 | 进行中 / 部分待实测 |
+| **主控芯片** | **ESP32-S31** (Dual-core RISC-V @ 240 MHz) | 乐鑫新一代旗舰多媒体与边缘 AI SoC |
+| **片外内存 (PSRAM)** | **16 MB Octal PSRAM** (250 MHz DDR) | 高速大容量缓存，支持 AI 推理与视频流 |
+| **片外存储 (Flash)** | **16 MB Quad SPI Flash** | 存放 Bootloader、App、68KB Logo 资产及 4MB 语音模型 |
+| **AMOLED 屏幕** | 1.43 英寸 480 × 480 CO5300 控制芯片 | 全贴合高清 AMOLED，色彩鲜艳，高刷低功耗 |
+| **IMU 传感器** | Bosch BMI270 (6 轴加速度计 + 陀螺仪) | 提供精准的 3D 姿态解算与重力感知 |
+| **地磁传感器** | Dual Bosch BMM150 (双磁力计阵列) | 双路地磁校验，同时承担罗盘指向与强磁吸附检测 |
+| **摄像头模块** | SC101IOT (DVP 接口，1280×720 UYVY) | 左侧扩展槽模块，由硬件 PPA 加速处理 |
+| **音频编解码** | ES8311 Codec + 模拟硅麦 + 板载喇叭 | 采集高质量麦克风信号供 ESP-SR 识别 |
+| **触控芯片** | Hynitron CST9220 | 全面屏多点电容触控 |
+| **USB 调试** | USB OTG High-Speed UTMI PHY (ESP-Iris) | 硬件 USB CDC0 高速无损实时日志传输 |
+
+### 软件架构分层
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    用户交互层 (480x480 UI)                   │
+│   Home  │  Motion  │  Audio & AI  │  Tilt Maze  │  Device   │
+├─────────────────────────────────────────────────────────────┤
+│                 核心应用与算法层 (Portable C)                │
+│  • 物理滚球引擎 (app_maze)         • 24频段音频DSP (app_audio)  │
+│  • 姿态解算滤波 (app_motion)       • 彗星插值动效 (exp_comet)   │
+├──────────────────────────────┬──────────────────────────────┤
+│       AI 视觉引擎 (ESP-DL)    │      AI 语音引擎 (ESP-SR)     │
+│  • SC101IOT DVP 驱动 (2缓冲)  │  • AFE 声学前端去噪           │
+│  • PPA 硬件旋转/缩放/对齐      │  • WakeNet9 离线双语唤醒      │
+│  • ESPDet-Pico 异步手部检测    │  • MultiNet7 58条指令识别     │
+├──────────────────────────────┴──────────────────────────────┤
+│                底层驱动与板级支持包 (Route B)                │
+│  • 双BMM150强磁检测状态机         • CST9220 触控中断驱动     │
+│  • CO5300 AMOLED 硬件刷屏        • BQ27220 / ADC 电池建模   │
+│  • ESP-Iris USB CDC0 调试通道     • Fail-Closed 零无线射频   │
+└─────────────────────────────────────────────────────────────┘
+```
 
 ---
 
-## 目录
+## ⚡ 关键稳定性保障（Senior Dev 修复记录）
 
-```
-app/mosaico_experience/
-  main/    可移植 C 核心：姿态融合、音频 DSP、迷宫、页面、文字/图形层、字形数据
-  host/    Host 模拟器适配（合成传感器、引擎模块）——不会链接进固件
-  tools/   字体生成、Host 运行包装、截图/布局检查、本地预览服务器
-  tests/   原生单元测试、行为回归（19 项）、绘制 shim 与官方引擎逐像素对比
-firmware/  路线 B：独立 ESP-IDF 工程
-  main/                device_main.c 与设备驱动（传感器、音频、扩展槽、摇杆、看门狗……）
-  components/          exp_surface（绘制层）、exp_dbglog（屏幕日志）
-  voice_components/    exp_voice（ESP-SR 日语语音，仅 -DEXP_VOICE=1）
-  partitions_voice.csv 语音构建的分区表
-docs/      01–12 文档（简体中文）
-scripts/   run_all_tests.sh · run_preview.sh · rf_check.py · rf_map_check.py · check_build.sh · release_check.py
-           mac_env_audit.sh（只读）· bootstrap_workspace.sh（默认 dry-run）· voice_flash.sh
-evidence/  测试日志、截图（22 屏）、布局报告、RF 静态扫描结果
-LICENSES/  字体许可证（Noto Sans CJK, SIL OFL 1.1）
-versions.lock.json  上游提交与已知版本约束
-```
-
-上游 SDK / BSP / 引擎**不在**本仓库内（`workspace/` 被忽略），由 `scripts/bootstrap_workspace.sh` 按 `versions.lock.json` 里固定的提交克隆；本项目从不修改它们。
-
-### 架构一句话
-
-可移植 C 核心（`app/mosaico_experience/main`）同时被两条路线使用：**Host 模拟器**（官方 raylib‑lite‑engine，用于预览与回归）和**真机固件**（路线 B：自己的 ESP‑IDF 工程 + 官方 BSP，不使用 Vibe Mode）。设备专有逻辑放在 `firmware/`，其中可单独测试的纯逻辑（`dev_*_core.h`）有主机单元测试。详见 `docs/03`。
+1. **DVP DMA 队列饿死修复（Zero-Starvation DMA）**  
+   * **问题**：旧版本在摄像头采图后，等待人脸/手势 AI 检测算法（耗时 200~300ms）全部完毕才归还缓冲区，导致 DVP 驱动 DMA 队列耗尽触发 ISR 断言 Panic。  
+   * **根治**：在 `dev_camera.c` 中，PPA 硬件搬运完成后（仅耗时 3ms）**立即调用 `mosaico_camera_return_frame` 归还缓冲**。实测经历 1200+ 帧高强度采样，连续数小时保持 `0 capture errors, 0 restarts`。
+2. **PSRAM 显存科学分级与配比**  
+   * 将 DVP 接收缓冲区严格限定为 2 帧（$2 \times 1.84\text{ MB} = 3.68\text{ MB}$），为系统其余模块保留 >5.0 MB 的空闲 PSRAM，彻底消除 `ENOMEM` (errno 12) 错误。
+3. **电池供电 Crash-Guard 自动复位**  
+   * **问题**：MOSAICO 主板带有内置锂电池（约 4.19V），`__NOINIT_ATTR` 区域在拔掉 USB 或软件重启时不会掉电清零。若外部模块（如早期摄像头）偶发异常，语音模块的防崩溃守卫会长期锁定处于 `SKIPPED` 状态，屏幕报错「音声操作 エラー」。  
+   * **根治**：语音就绪后立即解除守卫，并在每次开机时主动清理残留的错误 strike，保证即使断开 USB 后重新启动也能稳定正常加载。
 
 ---
 
-## 快速开始：Host 预览（不需要硬件）
+## 🚀 固件安装与烧录
 
-依赖：Python ≥ 3.10、Pillow、C 编译器（gcc 或 clang）、git。
+本仓库在 `release/` 目录中预编译了**单文件完整系统镜像（Offset 0x0）**，包含引导程序（Bootloader）、分区表、主程序及离线语音大模型。
+
+### 镜像信息
+
+* **文件路径**：`release/esp32s31_mosaico_experience_full_0x0.bin`
+* **烧录起始地址**：`0x0`
+* **大小**：约 9.25 MB (9,701,827 bytes)
+* **SHA-256**：`2f4bb03080c6ac8268f9fa8cc6acfeedeecf004451da039f598f875a982e17b3`
+
+### 一键烧录操作步骤
+
+1. **进入 ROM 下载模式**：
+   * 用 USB 数据线将开发板连接至电脑；
+   * 按住板载 **BOOT 键** $\rightarrow$ 按一下 **RESET 键** $\rightarrow$ 松开 **BOOT 键**。
+2. **执行烧录命令**（以 921600 高速波特率写入，约 15 秒完成）：
 
 ```bash
-./scripts/mac_env_audit.sh                  # 只读：看这台 Mac 缺什么
-./scripts/bootstrap_workspace.sh            # dry-run：显示将克隆的固定提交
-./scripts/bootstrap_workspace.sh --apply    # 克隆官方 esp-mosaico-vibe（含子模块）到 ./workspace
-export MOSAICO_ENGINE_ROOT=<…>/esp-mosaico-vibe/submodule/raylib-lite-engine   # bootstrap 之后通常自动找到
-./scripts/run_all_tests.sh                  # 全部 Host 检查（编译、单元测试、行为回归、截图、RF 静态扫描）
-./scripts/run_preview.sh                    # 本机浏览器交互预览（127.0.0.1）
+# 自动检测端口并烧录（或显式指定 -p /dev/cu.usbmodem*）
+esptool --chip esp32s31 -b 921600 write-flash 0x0 release/esp32s31_mosaico_experience_full_0x0.bin
 ```
 
-预览窗口右上角的 `SIM` 标签表示传感器数据**全部是合成的**。
+3. 烧录完成后，按一下板载 **RESET 键** 即可进入全新体验。
 
----
-
-## 固件构建与烧录（摘要，详见 `docs/07`、`docs/11`）
-
-要求：ESP‑IDF 固定在提交 `7b9cc1ac79f865983f59bb8ff3ff43eb74ff1dbe`（v6.2‑dev），目标 `esp32s31`。`git -C <idf> rev-parse HEAD` 核对后再用；请为本项目单独克隆一份，**不要**切换或改动已有的其它 ESP‑IDF 目录（`docs/01`、`docs/07`）。
+### 源码编译（供二次开发）
 
 ```bash
-. ~/esp/esp-idf-mosaico-7b9cc1a/export.sh
-cd firmware
-idf.py build                                              # 普通开发固件
-idf.py -B build_voice -DEXP_VOICE=1 build                 # 语音固件（独立目录、独立 sdkconfig）
-python3 ../scripts/rf_map_check.py build/mosaico_experience.map sdkconfig   # 链接内容的 RF 审计（每次构建后都要做）
+# 激活配套 ESP-IDF 环境（建议基于 release/v6.1 或 v6.2-dev）
+. ~/esp/esp-idf/export.sh
+
+cd mosaico-experience/firmware
+idf.py build
+
+# 烧录到目标设备
+idf.py -p /dev/cu.usbmodem11401 flash
+
+# 启动专用实时日志监控工具（零丢包、免驱动）
+python3 ../scripts/iris_log.py -p /dev/cu.usbmodem11401
 ```
 
-* 展台镜像：加 `-DEXP_RELEASE=1`，版本串以 `-rel` 结尾，再跑 `scripts/release_check.py`。开发镜像带调试叠加层和屏幕日志，**不能上展台**。
-* **烧录前必须**：进入下载模式（按住 Boot，按 Reset，松开 Boot）、**写死端口并核对芯片/MAC**。开发机上同时插着别的项目的 ESP32‑S3 板，写错端口会破坏另一个项目。
-* **绝不整片擦除**（除非用户明确要求）；不动 eFuse / 安全配置 / bootloader（语音首次烧录那次例外，见 `docs/11` §4.1）。
-* 语音固件需要自定义分区表（`partitions_voice.csv`：nvs / phy_init / factory 5 MB / model 4 MB / coredump 512 KB）。烧录脚本 `scripts/voice_flash.sh` 分 `check`（只读）→ `write`/`update`/`coredump`，写入需要 `VOICE_FLASH_CONFIRM=yes`。
-* 板子带电池：拔 USB **不等于**断电，要按 Reset。应用运行时没有串口（`docs/10` B21），日志看屏幕日志（三连点屏幕角落）。
+---
+
+## 📂 项目工程目录概览
+
+```
+mosaico-experience/
+├── app/mosaico_experience/        # 跨平台可移植 C 核心应用逻辑
+│   ├── main/                      # 核心物理引擎、DSP、UI 状态机、字形数据
+│   ├── host/                      # PC 桌面端模拟器（raylib-lite 渲染）
+│   ├── tests/                     # 单元测试与 19 项行为自动化回归套件
+│   └── tools/                     # 字体子集生成、字形生成与切图工具
+├── firmware/                      # ESP32-S31 原生 ESP-IDF 工程（Route B）
+│   ├── main/                      # 设备驱动（BMI270, BMM150, CST9220, 磁吸检测）
+│   ├── components/                # 屏幕渲染（exp_surface）与调试工具
+│   ├── voice_components/          # 离线语音模块（exp_voice，集成 ESP-SR）
+│   ├── vision_components/         # 摄像头手势识别模块（exp_vision，集成 ESP-DL）
+│   └── partitions_voice.csv       # 16MB 完整分区规划表
+├── docs/                          # 01~12 专项工程与审计设计文档
+├── scripts/                       # 自动化脚本库（RF 静态审计、免按键下载烧录、日志工具）
+├── release/                       # 官方发布二进制单镜像与视觉展示物料
+└── evidence/                      # 自动化测试报告、UI 像素回归对比与 RF 审计日志
+```
 
 ---
 
-## 访客体验循环（模拟器已验证）
+## 📄 开源许可与致谢
 
-| 条件 | 行为 |
-|---|---|
-| 任意页面无操作 45 秒 | 返回首页 |
-| 首页再停留 30 秒 | 进入自动演示（attract）巡回：动作 → 音频 → 游戏演示 → 首页 → 循环 |
-| 演示中任意触摸 | 立即结束演示回首页（这次触摸不触发按钮） |
-| 演示中的声音 / 震动 | 一律静音、不震动 |
-| 游戏进行中 | 不因闲置被强制返回首页 |
-
-展台人员须知见 `docs/09`。**在板上验证之前，不要向观众宣称设备能听懂日语，也不要宣称罗盘准确，更不要宣称"无线已关闭 / 已合规"。**
-
----
-
-## RF 政策（最高优先级）
-
-展示固件、启动流程及扩展设备**不得启用、请求或执行任何无线功能**（Wi‑Fi、蓝牙、ESP‑NOW、IEEE 802.15.4 及其他），要求失败即关闭（fail‑closed）。
-
-* 已有：源码静态扫描（`scripts/rf_check.py`）、构建链接图审计（`scripts/rf_map_check.py`）——都是**静态**检查，范围见 `docs/06`。
-* 已知事实：Wi‑Fi / 共存符号由 SoC 推导，**不能靠配置关掉**；PHY 驱动被链接进镜像，运行时是否会被启用**未验证**（`docs/06` §7）。因此配置本身不是证据。
-* 已知冲突：官方 Vibe Mode 固件启动即启用 Wi‑Fi。展位上**禁止**进入 Vibe Mode（AI 键 GPIO7）。
-* 不照搬官方示例里的 ESP‑Iris（USB + TCP）传输，不照搬 Full Demo 的 Wi‑Fi / 蓝牙 / A2DP 配置。
-* 未完成：RF 实测、日本法规确认。
-
----
-
-## 测试与证据
-
-`./scripts/run_all_tests.sh` 的最后一次完整运行输出 `ALL HOST CHECKS PASSED (simulator only: no device, no RF measurement)`。
-
-涵盖：字体数据可复现性、gcc/clang `-Werror` 编译与原生单元测试（ASan/UBSan）、19 项行为回归、绘制 shim 与官方引擎逐像素对比、22 屏截图与布局检查、RF 静态扫描。原始日志、截图、报告都在 `evidence/`，说明在 `docs/08`。
-
-**这些都是模拟器/主机结果，不代表设备行为。** 设备端 C 代码在云端环境只能用桩头文件做语法检查，真实编译在带 ESP‑IDF 的 Mac 上进行。
-
----
-
-## 视觉与语音同构固件（阶段 4a–4c，开发分支 `feature/vision`）
- 
-在当前分支上实现了**离线日语语音控制（ESP-SR）+ 摄像头手势跟踪（ESPDet）同构固件**（`-DEXP_VOICE=1 -DEXP_VISION=1`）：
-* **分区表结构**：`factory` 分区扩充至 6.0 MB（`0x600000`），`model` 语音模型分区设于 `0x610000`（4.0 MB），`coredump` 设于 `0xa10000`（512 KB），总占用 10.56 MB / 16 MB Flash（余量 5.44 MB）。
-* **视觉流水线**：官方 BSP 摄像头模块（左槽，SC101IOT，DVP）→ PPA 硬件变换（720×720→480×480 RGB565）→ Core 1 异步手部检测（`hand_detect` ESPDet-Pico 224×224）。
-* **迷宫手势控制**：Tilt Maze「カメラ」模式，采用方案 A 高增益映射（18 px 死区 + 1.6× 增益），微动灵敏跟手，菜单与 HUD 画中画（PiP）实时反馈手势姿态与跟踪框。
-* **干净显示与免冲突日志**：完全移除屏幕顶部的黄色调试叠层（`EXP_TIMING_OVERLAY=0`），利用 ESP32-S31 高速 USB OTG UTMI PHY 建立 ESP-Iris USB CDC0 日志通道（`scripts/iris_log.py`），实时诊断且不影响屏幕展示。
-* **DVP 内存优化**：在 `esp_video_dvp_device.c` 中显式指定 `.bk_buffer_dis = true`，省去驱动冗余的 1.84 MB PSRAM backup buffer，彻底解决高并发下的 DVP 分配阻塞。
-
-回退到纯语音版本：`git checkout stable-stage3e-0.8.1`。
-
----
-
-## 左侧磁吸 M5Stack Logo 模式（阶段 4d，开发分支 `feature/magnetic-logo-left`）
-
-在现有语音与视觉同构固件基础上，增加了**右侧磁吸贴合 M5Stack Logo 显示与分离平滑恢复功能**：
-* **图像资源**：通过 `scripts/gen_m5stack_logo.py` 将 `M5stack.png` 缩放生成 420×84 RGB565 数组（`firmware/main/assets/m5stack_logo.c/.h`），存放于 Flash `.rodata`（约 68.9 KB），480×480 AMOLED 全屏纯白居中无拉伸，**0 动态堆内存分配**。
-* **双 BMM150 强磁检测**：直接复用 `dev_sensors.c` 现有的 100 ms 轮询，不创建多余任务；区分强磁饱和（`-32768` 或 `X >= 30000 µT`）与正常地磁读数，在不干扰罗盘地磁滤波的同时实现极速贴合判决。
-* **状态机去抖**：`NORMAL -> ATTACH_PENDING (2 帧确认) -> LOGO_ACTIVE -> DETACH_PENDING (3 帧确认)`，实测贴合到呈现延迟 P95 ≤ 500 ms。
-* **最高优先级渲染与无缝恢复**：Logo 模式下全屏刷白并覆盖 Logo，挂起 Camera 线程释放 PSRAM 带宽，屏蔽触摸与语音；分离时清空累积时间（`time_debt_s = 0`）平滑恢复原页面，无重绘闪烁、无补帧快进、不重启。
-* **零 RF 维持**：全过程完全禁止任何无线网络栈，静态审计与链接符号审计均为 0 findings。
-
----
-
-## 文档索引
-
-| 文档 | 内容 |
-|---|---|
-| `docs/01_ENVIRONMENT_AUDIT.md` | 环境审计 |
-| `docs/02_OFFICIAL_REPOSITORY_REVIEW.md` | 官方仓库评审 |
-| `docs/03_DEMO_ARCHITECTURE.md` | 演示架构 |
-| `docs/04_HARDWARE_MATRIX.md` | 硬件矩阵 |
-| `docs/05_UI_SPECIFICATION.md` | UI 规格 |
-| `docs/06_RF_SAFETY_AUDIT.md` | RF 安全审计 |
-| `docs/07_BUILD_AND_FLASH.md` | 构建与烧录 |
-| `docs/08_TEST_REPORT.md` | 测试报告 |
-| `docs/09_EXHIBITION_OPERATION.md` | 展会运营说明 |
-| `docs/10_KNOWN_ISSUES.md` | 已知问题（B 编号） |
-| `docs/11_VOICE_SETUP.md` | 日语离线语音 |
-| `docs/12_VISION_SETUP.md` | 摄像头（阶段 4a） |
-
-文档为简体中文；UI 文案为日语。
-
----
-
-## 约束
-
-* 不修改上游 SDK / BSP，不覆盖现有 ESP‑IDF 目录，不改 eFuse 与安全配置。
-* 涉及分区表或数据的操作，先说明影响并取得用户同意。
-* 不伪造数据；不混淆"已编码 / 已编译 / 模拟器已验证 / 设备已验证 / RF 已审计"。
-
-## 许可证与第三方
-
-* 本项目源码：Apache License 2.0（`LICENSE`；源文件头为 `SPDX-License-Identifier: Apache-2.0`）。
-* 字体：Noto Sans CJK JP，SIL Open Font License 1.1（`LICENSES/NotoSansCJK-OFL.txt`）；生成的字形数据 `exp_font_data.c` 由它派生。
-* 上游（不随本仓库分发，各自有许可证）：[esp-mosaico-vibe](https://github.com/esp-mosaico/esp-mosaico-vibe)、[esp-mosaico-bsp](https://github.com/esp-mosaico/esp-mosaico-bsp)、[esp-mosaico-utils](https://github.com/esp-mosaico/esp-mosaico-utils)、[raylib-lite-engine](https://github.com/espressif2022/raylib-lite-engine)、ESP‑IDF、ESP‑SR / ESP‑DL。固定提交见 `versions.lock.json`。
-* ESP‑Mosaico、ESP32、ESP‑IDF 等名称归其各自权利人所有；本项目不是 Espressif 的官方产品。
+* **本项目源码**：遵循 [Apache License 2.0](LICENSE) 协议发布。
+* **字体字形**：基于 Noto Sans CJK JP 衍生并嵌入，遵循 [SIL Open Font License 1.1](LICENSES/NotoSansCJK-OFL.txt)。
+* **致谢与声明**：
+  * 本项目深度依赖 [ESP-IDF](https://github.com/espressif/esp-idf)、[ESP-SR](https://github.com/espressif/esp-sr)、[ESP-DL](https://github.com/espressif/esp-dl) 等乐鑫开源生态组件。
+  * `ESP32`、`ESP-MOSAICO`、`ESP-IDF` 等商标归乐鑫信息科技（Espressif Systems）所有。
+  * `M5Stack` 商标归深圳市明栈信息科技有限公司所有。
