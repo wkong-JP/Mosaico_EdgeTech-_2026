@@ -109,14 +109,25 @@ python3 ../scripts/rf_map_check.py <build>/mosaico_experience.map <build>/sdkcon
 * **4c（设备已验证，2026-10-13）**：切换为 `hand_detect` (ESPDet-Pico 224×224)，Core 1 原生降采样 480×480→224×224，方案 A 高增益手势控制（18 px 死区 + 1.6× 增益），画中画实时跟踪。
 * **同构固件合并（设备已验证，2026-10-14）**：合并语音识别（ESP-SR）与手势跟踪（ESPDet）于一体（App ~5.28 MB，6 MB 分区），关闭屏幕黄色调试叠层（`EXP_TIMING_OVERLAY=0`），利用 ESP-Iris USB CDC0 流式输出日志，配置 `.bk_buffer_dis = true` 优化 DVP 内存。用户真机测试确认效果优异。
 * **4d 左侧磁吸 M5Stack Logo（设备已验证，2026-10-15，`feature/magnetic-logo-left`）**：针对右边缘第二块 MOSAICO 磁力贴合开发。复用 BMM150 饱和强磁识别 + 宿主单元测试状态机，居中呈现原尺寸等比缩放的 420×84 RGB565 M5Stack Logo，全白背景覆盖；贴合期间安全挂起 Camera 线程与触摸语音事件，分离后秒级恢复，全过程保持零 RF 激活。
+* **摄像头与语音稳定性闭环（设备已验证，2026-10-19）**：
+  1. 修复 DVP DMA 队列饿死：PPA 转换完成后立即归还传感器帧缓冲，实测 1200+ 帧连续采样 0 capture error / 0 restart；
+  2. 修复摄像头打开失败（ENOMEM）：锁定 DVP 缓冲数为 2，确保系统常态预留 >5.0 MB PSRAM；
+  3. 修复电池供电下语音崩溃守卫误锁死（「音声操作 エラー」）：语音就绪后立即释放 guard，开机主动清零历史 strike。
+* **EdgeTech+ 2026 英文旗舰固件（2026-10-19，`feature/en-firmware`）**：
+  1. 全局 UI 英文国际化：Home, Motion, Audio, Game, Device 五大页面精细地道英文排版，通过 33 屏自动化布局测试；
+  2. AMOLED 四角圆弧安全边距（28px top bar / battery, Game HUD, 18px 边角 Tab），解决边缘裁切；
+  3. 乐鑫官方 Logo 磁吸展示（480×480 纯白底等比居中，替换原 M5Stack）；
+  4. 充分利用 16MB PSRAM 打造展台级动效：Tilt Maze 30fps 手势动态插值与发光彗星轨迹尾迹、音频页动态辉光动效、系统看板高亮 16MB PSRAM 与 Flash 架构分布；
+  5. 离线双语语音支持：支持英文单唤醒词 "Hi ESP" 与双语指令集（包含 "Device", "System", "Settings", "About" 强化识别）。
 
 ## 9. 已知问题速览（完整见 `docs/10`）
 
-B19 板上 Recovery 已擦除 · B21 运行时无串口 · B32 BQ27220 配置被官方驱动改写(已改只读) · B38 罗盘偏差 · B39 3c 未上板 · B40 3d 未上板 · B41/B42 日语语音是"音译英语"+单唤醒词已验证 · B43 双唤醒词 PANIC · B44 4a 设备已验证 · B45 4b 人脸检测基准设备已验证 · B46 4c 手势跟踪与同构固件设备已验证 · B47 同构固件与 DVP 修复 · B48 左侧磁吸 M5Stack Logo 模式设备已验证。
+B19 板上 Recovery 已擦除 · B21 运行时无串口 · B32 BQ27220 配置被官方驱动改写(已改只读) · B38 罗盘偏差 · B39 3c 未上板 · B40 3d 未上板 · B41/B42 日语语音是"音译英语"+单唤醒词已验证 · B43 双唤醒词 PANIC · B44 4a 设备已验证 · B45 4b 人脸检测基准设备已验证 · B46 4c 手势跟踪与同构固件设备已验证 · B47 同构固件与 DVP 修复 · B48 左侧磁吸 M5Stack Logo 模式设备已验证 · B49 DVP DMA 饿死与 PSRAM 缓冲配比闭环修复 · B50 电池供电语音 Crash Guard 误锁死修复 · B51 EdgeTech 2026 英文国际化与 16MB PSRAM 视觉增强交付。
 
 ## 10. 立即要做的事（按顺序）
 
-1. **推送 feature/vision 与 feature/magnetic-logo-left 分支至远程 GitHub 仓库**（待用户授权）。
+1. **推送 feature/en-firmware 与 feature/magnetic-logo-left 分支至远程 GitHub 仓库**。
 2. 长期：3c/3d 设备验证、罗盘问题、RF 实测与日本法规、8 小时稳定性、展台镜像验收。
+
 
 

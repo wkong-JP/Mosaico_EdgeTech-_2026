@@ -313,10 +313,6 @@ static void load_task(void *arg)
         s_feeding = true;                                     /* audio flows only from here on */
         set_phase(DEV_VPH_READY, s_detail_buf[0] ? s_detail_buf : "");
         ESP_LOGI(TAG, "voice control ready after %d ms (internal free %u, PSRAM free %u)", (int)s_load_ms, (unsigned)s_heap_int, (unsigned)s_heap_psram);
-        /* The engine keeps running in its own tasks; a crash in the first seconds is still the model load's fault, so the
-         * crash-guard step stays "in flight" for a while longer. After a reset inside this window voice stays off until the
-         * next power-on instead of putting the unit into a reboot loop. */
-        vTaskDelay(pdMS_TO_TICKS(STABLE_MS));
         if (s_hooks.guard) s_hooks.guard(false);
     }
     vTaskDelete(NULL);

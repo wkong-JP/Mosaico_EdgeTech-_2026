@@ -283,8 +283,8 @@ static void voice_guard(bool begin)
 
 static void io_task(void *arg)
 {
-    (void)arg;
-    dev_guard_boot(&s_guard, esp_reset_reason() == ESP_RST_POWERON);
+    /* Reset the guard on boot so unrelated crashes do not permanently lock out voice/audio on battery-backed hardware */
+    dev_guard_boot(&s_guard, true);
 #if EXP_USE_AUDIO
     if (dev_guard_allowed(&s_guard, DEV_STEP_AUDIO)) {
         dev_guard_begin(&s_guard, DEV_STEP_AUDIO);

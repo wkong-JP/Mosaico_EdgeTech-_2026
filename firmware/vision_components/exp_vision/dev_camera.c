@@ -110,7 +110,7 @@ static bool session_close(bool streaming, bool opened)
 }
 
 /* One converted frame. Returns ESP_OK and publishes, or the failing step in *what. */
-static esp_err_t convert_and_publish(const mosaico_camera_frame_t *fr, const dev_cam_crop_t *crop, dev_cam_yuv_t yuv, int *w,
+static esp_err_t convert_and_publish(mosaico_camera_handle_t cam, mosaico_camera_frame_t *fr, const dev_cam_crop_t *crop, dev_cam_yuv_t yuv, int *w,
                                      int64_t *ppa_us, int64_t *swap_us, const char **what)
 {
     uint16_t *out = s_view[*w];
@@ -153,6 +153,11 @@ static esp_err_t convert_and_publish(const mosaico_camera_frame_t *fr, const dev
     const int64_t t0 = esp_timer_get_time();
     e = ppa_do_scale_rotate_mirror(s_ppa, &op);
     *ppa_us = esp_timer_get_time() - t0;
+    /* Return the sensor buffer to the DVP DMA queue immediately after PPA finishes reading it */
+    if (cam && fr && fr->data) {
+        (void)mosaico_camera_return_frame(cam, fr);
+        fr->data = NULL;
+    }
     if (e != ESP_OK) { *what = "PPA scale/rotate"; return e; }
 
     e = esp_cache_msync(out, VIEW_BYTES, ESP_CACHE_MSYNC_FLAG_DIR_M2C | ESP_CACHE_MSYNC_FLAG_INVALIDATE);
@@ -195,6 +200,7 @@ static void run_session(bool allow_unid)
 
     mosaico_camera_config_t cfg = MOSAICO_CAMERA_DEFAULT_CONFIG();
     cfg.allow_unidentified = allow_unid;
+    cfg.buffer_count = 2;   /* 2 x 1.84MB (1280x720 YUV422) = 3.68MB, fits in 5.09MB free PSRAM */
     if (allow_unid) ESP_LOGW(TAG, "opening the left slot WITHOUT a valid camera descriptor (bring-up exception)");
     e = mosaico_camera_new(&cfg, &s_cam);
     if (e != ESP_OK) {
@@ -277,9 +283,11 @@ static void run_session(bool allow_unid)
 
         int64_t ppa_us = 0, swap_us = 0;
         const char *what = NULL;
-        const esp_err_t ce = convert_and_publish(&fr, &crop, yuv, &w, &ppa_us, &swap_us, &what);
-        const esp_err_t re = mosaico_camera_return_frame(s_cam, &fr);     /* always give the buffer back */
-        if (re != ESP_OK) { end_detail = "return_frame failed"; end_err = (int)re; break; }
+        const esp_err_t ce = convert_and_publish(s_cam, &fr, &crop, yuv, &w, &ppa_us, &swap_us, &what);
+        if (fr.data) {
+            const esp_err_t re = mosaico_camera_return_frame(s_cam, &fr);
+            if (re != ESP_OK) { end_detail = "return_frame failed"; end_err = (int)re; break; }
+        }
         if (ce != ESP_OK) {
             ESP_LOGE(TAG, "%s failed: %s", what ? what : "convert", esp_err_to_name(ce));
             end_detail = what ? what : "frame conversion failed";
