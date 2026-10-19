@@ -142,3 +142,48 @@ static inline float dev_sweep_max_dev(const dev_sweep_t *s)
         if (s->n[i] >= 3 && fabsf(dev_sweep_mean(s, i)) > m) m = fabsf(dev_sweep_mean(s, i));
     return m;
 }
+
+/* Battery state of charge estimation based on measured cell voltage (mV).
+ * Characterized for the ESP-MOSAICO 80 mAh Li-Po cell.
+ * When the BQ27220 CEDV fuel gauge is in default / unlearned state (or returns an implausible
+ * SoC contradictory to the open-circuit voltage), this piecewise linear voltage curve provides
+ * a reliable, monotonic, and physically accurate percentage (0..100%). */
+static inline int dev_battery_soc_from_mv(int mv)
+{
+    static const struct { int mv; int soc; } CURVE[] = {
+        {4150, 100},
+        {4002, 90},
+        {3969, 80},
+        {3938, 70},
+        {3880, 60},
+        {3824, 50},
+        {3794, 40},
+        {3753, 30},
+        {3677, 20},
+        {3574, 10},
+        {3490, 0},
+    };
+    enum { N = (int)(sizeof(CURVE) / sizeof(CURVE[0])) };
+    if (mv >= CURVE[0].mv) return 100;
+    if (mv <= CURVE[N - 1].mv) return 0;
+    for (int i = 0; i < N - 1; ++i) {
+        if (mv >= CURVE[i + 1].mv) {
+            const int dv = CURVE[i].mv - CURVE[i + 1].mv;
+            const int dsoc = CURVE[i].soc - CURVE[i + 1].soc;
+            return CURVE[i + 1].soc + (mv - CURVE[i + 1].mv) * dsoc / dv;
+        }
+    }
+    return 0;
+}
+
+static inline int dev_battery_resolve_soc(int mv, int raw_soc)
+{
+    const int v_soc = dev_battery_soc_from_mv(mv);
+    if (raw_soc < 0 || raw_soc > 100) return v_soc;
+    if ((mv >= 3900 && raw_soc <= 20) || (mv >= 4100 && raw_soc <= 50) ||
+        (mv <= 3650 && raw_soc >= 60)) {
+        return v_soc;
+    }
+    return raw_soc;
+}
+

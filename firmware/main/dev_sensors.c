@@ -79,13 +79,14 @@ static void batt_set_state(const char *state)
 }
 
 /* Records one poll. A reading counts only if the gauge answered and the numbers are believable. */
-static void battery_apply(esp_err_t e, int mv, int ma, int soc)
+static void battery_apply(esp_err_t e, int mv, int ma, int raw_soc)
 {
+    const int soc = dev_battery_resolve_soc(mv, raw_soc);
     portENTER_CRITICAL(&s_lock);
     if (e != ESP_OK) {
         ++s_d.batt_errors;
         s_d.batt_state = "read failed";
-    } else if (mv < BATT_MV_MIN || mv > BATT_MV_MAX || soc < 0 || soc > 100) {
+    } else if (mv < BATT_MV_MIN || mv > BATT_MV_MAX) {
         ++s_d.batt_errors;
         s_d.batt_state = "implausible";
         s_d.batt_mv = mv;                  /* shown for diagnosis; batt_ok stays false because the state is not "ok" */
@@ -103,7 +104,7 @@ static void battery_apply(esp_err_t e, int mv, int ma, int soc)
     const bool log_now = s_d.batt_reads == 1 || s_d.batt_errors == 1;
     const char *state = s_d.batt_state;
     portEXIT_CRITICAL(&s_lock);
-    if (log_now) ESP_LOGI(TAG, "battery: %s, %d mV, %d mA, %d %%", state, mv, ma, soc);
+    if (log_now) ESP_LOGI(TAG, "battery: %s, %d mV, %d mA, %d %% (raw %d %%)", state, mv, ma, soc, raw_soc);
 }
 
 #if EXP_BATT_WRITE_PROFILE

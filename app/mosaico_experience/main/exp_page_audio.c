@@ -66,7 +66,16 @@ void page_audio_render(exp_app_t *app)
     {
         const int x0 = 28, y0 = 184, bh = 44;
         const float pitch = 424.0f / (float)EXP_SPEC_BARS;
-        if (a->signal_present) exp_layout_keepout((exp_rect_t){x0, y0, 424, bh});
+        if (a->signal_present) {
+            exp_layout_keepout((exp_rect_t){x0, y0, 424, bh});
+            for (int i = 0; i < EXP_SPEC_BARS; ++i) {
+                if (a->bars[i] > 0.20f) {
+                    const int bx = x0 + (int)lroundf((float)i * pitch);
+                    const int h = (int)lroundf(a->bars[i] * (float)bh);
+                    exp_glow((float)(bx + 6), (float)(y0 + bh - h / 2), (float)h * 0.6f, C_CYAN, a->bars[i] * 0.25f);
+                }
+            }
+        }
         for (int i = 0; i < EXP_SPEC_BARS; ++i) {
             const int h = (int)lroundf(a->bars[i] * (float)bh);
             const int bx = x0 + (int)lroundf((float)i * pitch);

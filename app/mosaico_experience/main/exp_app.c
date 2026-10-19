@@ -503,12 +503,13 @@ static void draw_logo_mark(int x, int y, int size)
 
 static void draw_top_bar(exp_app_t *app)
 {
+    const int corner_inset = 28;
     if (app->page == EXP_PAGE_HOME) {
-        draw_logo_mark(EXP_MARGIN, 10, 24);
+        draw_logo_mark(corner_inset, 10, 24);
     } else {
-        exp_text(page_title(app->page), EXP_MARGIN, 7, EXP_FONT_TITLE, C_TEXT, EXP_ALIGN_LEFT);
+        exp_text(page_title(app->page), corner_inset, 7, EXP_FONT_TITLE, C_TEXT, EXP_ALIGN_LEFT);
     }
-    int right = EXP_W - EXP_MARGIN;
+    int right = EXP_W - corner_inset;
     if (app->s.flags & EXP_SENS_BATT) {
         ui_battery(app, right, 22);
         right -= 96;
@@ -531,7 +532,8 @@ static void draw_tab_bar(exp_app_t *app)
         const bool sel = b[i].selected;
         const bool pressed = app->ptr_down && app->press_id == b[i].id;
         const exp_rect_t r = b[i].r;
-        exp_panel(r.x, r.y, r.w, r.h, 14, sel ? EXP_RGB(18, 52, 74) : (pressed ? EXP_RGB(26, 44, 76) : C_PANEL),
+        const int rad = (idx == 0 || idx == EXP_PAGE_COUNT - 1) ? 18 : 14;
+        exp_panel(r.x, r.y, r.w, r.h, rad, sel ? EXP_RGB(18, 52, 74) : (pressed ? EXP_RGB(26, 44, 76) : C_PANEL),
                   sel ? C_CYAN_DIM : C_BORDER);
         const Color c = sel ? C_CYAN : C_TEXT2;
         exp_icon(k_tab_icon[idx], (float)(r.x + r.w / 2), (float)(r.y + 21), 24.0f, c);
@@ -543,13 +545,13 @@ static void draw_tab_bar(exp_app_t *app)
 
 static void draw_attract_bar(exp_app_t *app)
 {
-    const exp_rect_t r = {16, 420, 448, 44};
-    exp_panel(r.x, r.y, r.w, r.h, 14, EXP_RGB(18, 52, 74), C_CYAN_DIM);
+    const exp_rect_t r = {24, 420, 432, 44};
+    exp_panel(r.x, r.y, r.w, r.h, 16, EXP_RGB(18, 52, 74), C_CYAN_DIM);
     const float ph = (float)(app->now_ms % 1600U) / 1600.0f;
     const float pulse = 0.5f + 0.5f * sinf(ph * 6.2831853f);
     exp_disc((float)(r.x + 20), (float)(r.y + 22), 5.0f, exp_lerp(C_CYAN_DIM, C_CYAN, pulse));
     exp_text_in((exp_rect_t){r.x + 34, r.y, 160, r.h}, T_MODE_AUTO, EXP_FONT_CAP, C_TEXT2, EXP_ALIGN_LEFT);
-    exp_text_in((exp_rect_t){r.x + 200, r.y, 236, r.h}, T_TOUCH_START, EXP_FONT_BODY,
+    exp_text_in((exp_rect_t){r.x + 200, r.y, 220, r.h}, T_TOUCH_START, EXP_FONT_BODY,
                 exp_lerp(C_TEXT2, C_TEXT, pulse), EXP_ALIGN_RIGHT);
     exp_layout_target(r);
 }

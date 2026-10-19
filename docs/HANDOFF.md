@@ -33,7 +33,7 @@
 
 ## 4. 仓库与分支
 
-* GitHub：`https://github.com/weilu-kong/Mosaico_EdgeTech-_2026.git`（空仓库；**截至本文写成时尚未推送**，用户需在 Mac 上 `git push -u origin master feature/vision && git push origin stable-stage3e-0.8.1`）。
+* GitHub：`https://github.com/wkong-JP/Mosaico_EdgeTech-_2026.git`（空仓库；**截至本文写成时尚未推送**，用户需在 Mac 上 `git push -u origin master feature/vision && git push origin stable-stage3e-0.8.1`）。
 * 本地：`/Users/kongweilu/Development/Mosaico EdgeTech 2026/mosaico-experience`。
 * `master`：稳定的阶段 3e（固件 0.8.1）+ README(zh/en) + LICENSE(Apache-2.0) + 本文件。
 * `feature/vision`：阶段 4a-4c 摄像头与手势控制（固件 0.9.3）。
