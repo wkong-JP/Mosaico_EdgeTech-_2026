@@ -76,7 +76,7 @@
   },
   "audio_no_mic": {
     "layout": {
-      "texts": 29,
+      "texts": 30,
       "text_overlaps": 0,
       "shape_overlaps": 0,
       "off_screen": 0,
@@ -166,7 +166,7 @@
   },
   "game_menu": {
     "layout": {
-      "texts": 23,
+      "texts": 24,
       "text_overlaps": 0,
       "shape_overlaps": 0,
       "off_screen": 0,
@@ -181,7 +181,7 @@
   },
   "game_menu_camera": {
     "layout": {
-      "texts": 23,
+      "texts": 24,
       "text_overlaps": 0,
       "shape_overlaps": 0,
       "off_screen": 0,
@@ -406,7 +406,7 @@
   },
   "motion_imu_fault": {
     "layout": {
-      "texts": 35,
+      "texts": 36,
       "text_overlaps": 0,
       "shape_overlaps": 0,
       "off_screen": 0,
@@ -421,7 +421,7 @@
   },
   "game_menu_no_imu": {
     "layout": {
-      "texts": 23,
+      "texts": 24,
       "text_overlaps": 0,
       "shape_overlaps": 0,
       "off_screen": 0,

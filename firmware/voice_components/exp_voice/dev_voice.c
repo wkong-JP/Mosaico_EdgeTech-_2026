@@ -36,7 +36,7 @@ static const char *TAG = "dev_voice";
  *   0 = "こんにちは ESP" only (default; what the owner's Full Demo uses)      1 = "Hi, ESP" only
  *   2 = both (kept only to reproduce the crash; do not use) */
 #ifndef EXP_VOICE_WAKE
-#define EXP_VOICE_WAKE 0
+#define EXP_VOICE_WAKE 1
 #endif
 #if EXP_VOICE_WAKE == 1
 #define WAKE_NAME_1 "wn9_hiesp"

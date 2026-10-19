@@ -56,8 +56,8 @@ void page_device_render(exp_app_t *app)
     exp_panel(16, 189, 448, 100, 14, C_PANEL, C_BORDER);
     mem_row(196, T_DEV_INT, s->heap_internal_free, s->heap_internal_total, C_CYAN);
     mem_row(234, T_DEV_PSRAM, s->heap_psram_free, s->heap_psram_total, C_GOLD);
-    if (s->heap_largest_free) snprintf(buf, sizeof(buf), "%u KB", (unsigned)(s->heap_largest_free / 1024U));
-    else snprintf(buf, sizeof(buf), "--");
+    if (s->heap_largest_free) snprintf(buf, sizeof(buf), "%u KB · 16MB Flash", (unsigned)(s->heap_largest_free / 1024U));
+    else snprintf(buf, sizeof(buf), "-- · 16MB Flash");
     exp_text(T_DEV_LARGEST, 28, 268, EXP_FONT_CAP, C_TEXT3, EXP_ALIGN_LEFT);
     exp_text(buf, 452, 268, EXP_FONT_CAP, C_TEXT3, EXP_ALIGN_RIGHT);
 

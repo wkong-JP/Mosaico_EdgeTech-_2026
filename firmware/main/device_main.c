@@ -38,7 +38,7 @@ static dev_voice_status_t s_voice;     /* snapshot of the speech engine, refresh
 #endif
 #include "dev_sensors_core.h"
 #include "dev_magnet.h"
-#include "assets/m5stack_logo.h"
+#include "assets/espressif_logo.h"
 #include "esp_iris.h"
 #include "exp_dbglog.h"
 #include "exp_gfx.h"
@@ -1173,7 +1173,7 @@ void app_main(void)
         BeginDrawing();
         if (MosaicoFastFrameAvailable()) {
             if (logo_active) {
-                m5stack_logo_draw(s_fb[s_cur], BSP_LCD_H_RES);
+                espressif_logo_draw(s_fb[s_cur], BSP_LCD_H_RES);
                 dev_magnet_notify_presented();
             } else {
 #if EXP_VISION

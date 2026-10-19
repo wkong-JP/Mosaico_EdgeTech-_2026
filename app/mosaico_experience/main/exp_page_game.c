@@ -7,7 +7,7 @@
 
 #define PF_Y 62          /* playfield top */
 #define PF_SIZE 400
-#define HUD_EXIT_X 420
+#define HUD_EXIT_X 412
 
 bool app_game_fullscreen(const exp_app_t *app)
 {
@@ -29,7 +29,7 @@ int page_game_layout(const exp_app_t *app, exp_btn_t *out)
         out[n++] = (exp_btn_t){BTN_IN_TOUCH, {374, 314, 90, 44}, true, page_game_input(app) == INPUT_TOUCH, UI_BTN_CHIP};
         out[n++] = (exp_btn_t){BTN_START, {16, 364, 448, 44}, true, false, UI_BTN_PRIMARY};
     } else {
-        out[n++] = (exp_btn_t){BTN_EXIT_GAME, {HUD_EXIT_X, 4, 52, 48}, true, false, UI_BTN_SECONDARY};
+        out[n++] = (exp_btn_t){BTN_EXIT_GAME, {HUD_EXIT_X, 6, 48, 44}, true, false, UI_BTN_SECONDARY};
         if ((m->phase == MZ_SUCCESS || m->phase == MZ_TIMEUP) && !m->demo) {
             out[n++] = (exp_btn_t){BTN_RETRY, {76, 306, 160, 44}, true, false, UI_BTN_PRIMARY};
             out[n++] = (exp_btn_t){BTN_TO_MENU, {244, 306, 160, 44}, true, false, UI_BTN_SECONDARY};
@@ -38,8 +38,15 @@ int page_game_layout(const exp_app_t *app, exp_btn_t *out)
     return n;
 }
 
+#define GESTURE_TRAIL_LEN 16
+static float s_trail_x[GESTURE_TRAIL_LEN];
+static float s_trail_y[GESTURE_TRAIL_LEN];
+static int s_trail_n = 0;
+static float s_filt_x = 0.0f, s_filt_y = 0.0f;
+
 static void game_to_menu(exp_app_t *app)
 {
+    s_trail_n = 0;
     exp_maze_to_menu(&app->maze);
     exp_maze_preview(&app->maze, (maze_diff_t)app->sel_diff, 0);
     app->result_age_s = 0.0f;
@@ -137,9 +144,45 @@ void page_game_update(exp_app_t *app, float dt)
         ay = -app->s.joy[1] * 0.6f;
     } else if (active_in == INPUT_FACE && (app->s.flags & EXP_SENS_FACE) && app->s.face_found) {
         exp_face_box_to_tilt(app->s.face_x, app->s.face_y, app->s.face_w, app->s.face_h, &ax, &ay);
+
+        const int cell = m->cell, n = m->n;
+        const int ox = (EXP_W - n * cell) / 2, oy = PF_Y + (PF_SIZE - n * cell) / 2;
+        const float fcx = (float)(app->s.face_x + app->s.face_w / 2);
+        const float fcy = (float)(app->s.face_y + app->s.face_h / 2);
+        const float raw_tx = exp_clampf(fcx, (float)(ox + 10), (float)(ox + n * cell - 10));
+        const float raw_ty = exp_clampf(fcy, (float)(oy + 10), (float)(oy + n * cell - 10));
+
+        if (s_trail_n == 0) {
+            s_filt_x = raw_tx;
+            s_filt_y = raw_ty;
+            s_trail_x[0] = s_filt_x;
+            s_trail_y[0] = s_filt_y;
+            s_trail_n = 1;
+        } else {
+            /* Smooth exponential convergence across 30fps frames (bridges 4.5fps camera detections) */
+            const float alpha = 1.0f - expf(-14.0f * dt);
+            s_filt_x += (raw_tx - s_filt_x) * alpha;
+            s_filt_y += (raw_ty - s_filt_y) * alpha;
+
+            /* Push trail point only on displacement >= 3px to maintain a dynamic comet trail */
+            const float dx = s_filt_x - s_trail_x[0];
+            const float dy = s_filt_y - s_trail_y[0];
+            if (dx * dx + dy * dy >= 9.0f) {
+                for (int i = GESTURE_TRAIL_LEN - 1; i > 0; --i) {
+                    s_trail_x[i] = s_trail_x[i - 1];
+                    s_trail_y[i] = s_trail_y[i - 1];
+                }
+                s_trail_x[0] = s_filt_x;
+                s_trail_y[0] = s_filt_y;
+                if (s_trail_n < GESTURE_TRAIL_LEN) s_trail_n++;
+            }
+        }
     } else if (active_in == INPUT_TOUCH) {
         ax = app->touch_ax;
         ay = app->touch_ay;
+    }
+    if (active_in != INPUT_FACE || !(app->s.flags & EXP_SENS_FACE) || !app->s.face_found) {
+        s_trail_n = 0;
     }
     /* An active round is never cut short by the 45 s idle return. */
     if (!m->demo) app_activity(app);
@@ -259,11 +302,11 @@ static void draw_play(exp_app_t *app)
 
     /* HUD */
     char buf[96];
-    exp_text(T_TIME, 16, 6, EXP_FONT_CAP, C_TEXT2, EXP_ALIGN_LEFT);
+    exp_text(T_TIME, 28, 6, EXP_FONT_CAP, C_TEXT2, EXP_ALIGN_LEFT);
     fmt_time(buf, sizeof(buf), m->time_left_s);
     const Color tc = m->time_left_s < 10.0f ? C_ERR : C_TEXT;
-    int w = exp_text(buf, 16, 22, EXP_FONT_TITLE, tc, EXP_ALIGN_LEFT);
-    exp_text(T_SEC, 16 + w + 4, 30, EXP_FONT_CAP, C_TEXT2, EXP_ALIGN_LEFT);
+    int w = exp_text(buf, 28, 22, EXP_FONT_TITLE, tc, EXP_ALIGN_LEFT);
+    exp_text(T_SEC, 28 + w + 4, 30, EXP_FONT_CAP, C_TEXT2, EXP_ALIGN_LEFT);
     if (m->demo) {
         int cw = 0;
         ui_chip(EXP_W / 2 - 52, 12, T_DEMO_PLAY, C_GOLD, C_TEXT, &cw);
@@ -274,19 +317,34 @@ static void draw_play(exp_app_t *app)
     exp_btn_t btns[EXP_MAX_BTN];
     const int nb = page_game_layout(app, btns);
     ui_draw_button(&btns[0], NULL, app->ptr_down && app->press_id == BTN_EXIT_GAME, EXP_ICON_CLOSE, false);
-    exp_icon(EXP_ICON_CLOSE, (float)(HUD_EXIT_X + 26), 28.0f, 20.0f, C_TEXT);
-    exp_layout_keepout((exp_rect_t){HUD_EXIT_X + 16, 18, 20, 20});
+    exp_icon(EXP_ICON_CLOSE, (float)(HUD_EXIT_X + 24), 28.0f, 20.0f, C_TEXT);
+    exp_layout_keepout((exp_rect_t){HUD_EXIT_X + 14, 18, 20, 20});
 
     /* Play field */
     exp_panel(ox - 6, oy - 6, n * cell + 12, n * cell + 12, 12, EXP_RGB(8, 16, 30), C_BORDER);
     draw_maze(app, ox, oy, cell, false);
-    if (!m->demo && page_game_input(app) == INPUT_FACE && (app->s.flags & EXP_SENS_FACE) && app->s.face_found) {
-        const float fcx = (float)(app->s.face_x + app->s.face_w / 2);
-        const float fcy = (float)(app->s.face_y + app->s.face_h / 2);
-        const float tx = exp_clampf(fcx, (float)(ox + 10), (float)(ox + n * cell - 10));
-        const float ty = exp_clampf(fcy, (float)(oy + 10), (float)(oy + n * cell - 10));
-        exp_ring(tx, ty, 10.0f, 8.0f, exp_with_alpha(C_CYAN, 0.75f));
-        exp_disc(tx, ty, 3.0f, exp_with_alpha(C_CYAN, 0.85f));
+    if (!m->demo && page_game_input(app) == INPUT_FACE && (app->s.flags & EXP_SENS_FACE) && app->s.face_found && s_trail_n > 0) {
+        const float tx = s_filt_x;
+        const float ty = s_filt_y;
+
+        /* Render glowing motion trail with decaying radius and alpha */
+        for (int i = s_trail_n - 1; i > 0; --i) {
+            const float t = 1.0f - (float)i / (float)GESTURE_TRAIL_LEN;
+            const float r = 2.0f + 5.0f * t;
+            const float a = 0.6f * t * t;
+            exp_disc(s_trail_x[i], s_trail_y[i], r, exp_with_alpha(C_CYAN, a));
+            exp_line(s_trail_x[i], s_trail_y[i], s_trail_x[i - 1], s_trail_y[i - 1], 1.5f * t, exp_with_alpha(C_CYAN, a * 0.7f));
+        }
+
+        /* High-performance glowing cursor reticle (neon halo + ring + crosshair) */
+        const float pulse = 0.5f + 0.5f * sinf((float)(app->now_ms % 1000U) * 0.006283f);
+        exp_disc(tx, ty, 16.0f + 2.0f * pulse, exp_with_alpha(C_CYAN, 0.12f));
+        exp_ring(tx, ty, 11.0f + 2.0f * pulse, 9.0f, exp_with_alpha(C_CYAN, 0.85f));
+        exp_disc(tx, ty, 3.5f, C_GOLD);
+        exp_line(tx - 15.0f, ty, tx - 6.0f, ty, 1.0f, exp_with_alpha(C_CYAN, 0.6f));
+        exp_line(tx + 6.0f, ty, tx + 15.0f, ty, 1.0f, exp_with_alpha(C_CYAN, 0.6f));
+        exp_line(tx, ty - 15.0f, tx, ty - 6.0f, 1.0f, exp_with_alpha(C_CYAN, 0.6f));
+        exp_line(tx, ty + 6.0f, tx, ty + 15.0f, 1.0f, exp_with_alpha(C_CYAN, 0.6f));
     }
     /* Ball */
     const float bx = (float)ox + m->bx, by = (float)oy + m->by;

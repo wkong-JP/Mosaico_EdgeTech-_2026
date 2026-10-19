@@ -116,7 +116,7 @@ void dev_magnet_process_sample(const dev_mag_sample_t *sample)
 
         if (new_state == DEV_MAG_STATE_LOGO_ACTIVE) {
             ESP_LOGI(TAG, "RIGHT contact confirmed: detect latency=%lu ms", (unsigned long)s_status.detect_latency_ms);
-            ESP_LOGI(TAG, "NORMAL -> LOGO (requesting M5Stack logo display)");
+            ESP_LOGI(TAG, "NORMAL -> LOGO (requesting Espressif logo display)");
         } else if (new_state == DEV_MAG_STATE_NORMAL && prev_state == DEV_MAG_STATE_DETACH_PENDING) {
             ESP_LOGI(TAG, "RIGHT released: LOGO -> NORMAL (restoring original UI)");
         }
@@ -159,7 +159,7 @@ void dev_magnet_notify_presented(void)
     portEXIT_CRITICAL(&s_lock);
 
     if (log_this) {
-        ESP_LOGI(TAG, "M5Stack logo presented: present latency=%lu ms (total from contact=%lu ms)",
+        ESP_LOGI(TAG, "Espressif logo presented: present latency=%lu ms (total from contact=%lu ms)",
                  (unsigned long)present_lat, (unsigned long)total_lat);
         ESP_LOGI(TAG, "Diagnostics: heap_internal=%u, psram=%u",
                  (unsigned)heap_caps_get_free_size(MALLOC_CAP_INTERNAL),

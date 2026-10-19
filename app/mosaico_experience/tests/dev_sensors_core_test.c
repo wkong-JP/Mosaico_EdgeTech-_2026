@@ -119,6 +119,25 @@ int main(void)
         CHECK(!sw.have_ref && dev_sweep_filled(&sw, 1) == 0);
     }
 
+    /* battery SoC calculation and uncalibrated gauge override */
+    {
+        CHECK(dev_battery_soc_from_mv(4250) == 100);
+        CHECK(dev_battery_soc_from_mv(4150) == 100);
+        CHECK(dev_battery_soc_from_mv(4002) == 90);
+        CHECK(dev_battery_soc_from_mv(3824) == 50);
+        CHECK(dev_battery_soc_from_mv(3490) == 0);
+        CHECK(dev_battery_soc_from_mv(3200) == 0);
+
+        /* 4195 mV with uncalibrated 6% gauge reading -> must resolve to 100% */
+        CHECK(dev_battery_resolve_soc(4195, 6) == 100);
+        /* 4150 mV with uncalibrated -1 -> must resolve to 100% */
+        CHECK(dev_battery_resolve_soc(4150, -1) == 100);
+        /* 3824 mV with plausible calibrated 52% -> must keep 52% */
+        CHECK(dev_battery_resolve_soc(3824, 52) == 52);
+        /* 3450 mV with contradictory 85% -> must resolve to 0% */
+        CHECK(dev_battery_resolve_soc(3450, 85) == 0);
+    }
+
     if (fails) { printf("dev_sensors_core: %d FAILED\n", fails); return 1; }
     printf("dev_sensors_core: all checks passed (48 signed permutations: 24 proper rotations)\n");
     return 0;

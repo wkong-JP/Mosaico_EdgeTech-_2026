@@ -20,3 +20,8 @@ workspace/
 firmware/build_voice/coredump.bin
 
 firmware/build_vision/
+
+# Release artifacts and publishing materials (Mosaico Ideas)
+release/
+docs/Mosaico_*.md
+scripts/gen_cover_images.py
