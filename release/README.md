@@ -1,4 +1,4 @@
-# Release Package: ESP-MOSAICO Experience (EdgeTech+ 2026)
+# Release Package: ESP-MOSAICO Experience Flagship Firmware
 
 This directory contains the latest production artifacts for the **ESP-MOSAICO Experience** flagship firmware, ready for publishing to **Mosaico Ideas** or local flashing.
 

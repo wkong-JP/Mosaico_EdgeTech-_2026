@@ -96,7 +96,7 @@ def make_hero_cover():
 
     # Category Pill
     pill_font = get_font(FONT_HEADING, 20)
-    pill_text = "EDGETECH+ 2026 FLAGSHIP RELEASE"
+    pill_text = "ESP32-S31 FLAGSHIP RELEASE"
     pw = pill_font.getlength(pill_text) + 32
     draw.rounded_rectangle([96, 150, 96 + pw, 188], radius=19, fill=(0, 229, 255, 30), outline=C_ACCENT_CYAN, width=2)
     draw.text((112, 158), pill_text, font=pill_font, fill=C_ACCENT_CYAN)
@@ -107,7 +107,7 @@ def make_hero_cover():
     draw.text((96, 300), "EXPERIENCE", font=title_font, fill=C_ACCENT_CYAN)
 
     subtitle_font = get_font(FONT_CN, 32, index=0)
-    draw.text((96, 400), "全能离线旗舰体验固件 · 充分挖掘 16MB PSRAM", font=subtitle_font, fill=(226, 232, 240))
+    draw.text((96, 400), "全能离线体验固件 · 充分挖掘 16MB PSRAM", font=subtitle_font, fill=(226, 232, 240))
     
     en_sub_font = get_font(FONT_TEXT, 22)
     draw.text((96, 452), "Multi-Modal AIoT Experience with Dual-Language Voice & Vision", font=en_sub_font, fill=C_TEXT_MUTED)
@@ -193,15 +193,15 @@ def make_screens_showcase():
     # Header
     title_font = get_font(FONT_HEADING, 44)
     sub_font = get_font(FONT_CN, 24)
-    draw.text((96, 60), "ESP-MOSAICO EXPERIENCE — 五大功能界面", font=title_font, fill=C_TEXT_WHITE)
-    draw.text((96, 120), "480×480 AMOLED 全界面英文国际化与精细圆角排版，充分调用 16MB 高速 PSRAM", font=sub_font, fill=C_ACCENT_CYAN)
+    draw.text((96, 60), "ESP-MOSAICO EXPERIENCE — CORE INTERACTIVE SCREENS", font=title_font, fill=C_TEXT_WHITE)
+    draw.text((96, 120), "480×480 AMOLED 全界面精细排版 · 充分调用 16MB 高速 PSRAM", font=sub_font, fill=C_ACCENT_CYAN)
 
     screens_meta = [
-        ("Home 首页", "系统导航 / 磁吸状态", "home.png"),
-        ("Motion 姿态", "BMI270 + 双磁力计", "motion_compass_calibrated.png"),
-        ("Audio & AI", "瀑布频谱 / 离线语音", "audio_voice.png"),
-        ("Tilt Maze 迷宫", "手势彗星尾迹 / 重力", "game_playing_face.png"),
-        ("Device 设备", "16MB PSRAM / 架构看板", "device_modules.png"),
+        ("01 · Home", "System Navigation & Magnet Dock", "home.png"),
+        ("02 · Motion", "BMI270 IMU + Dual Magnetometers", "motion_compass_calibrated.png"),
+        ("03 · Audio & AI", "Dynamic Spectrum & Offline Speech", "audio_voice.png"),
+        ("04 · Tilt Maze", "Hand Gesture Tracking & IMU Tilt", "game_playing_face.png"),
+        ("05 · Device Info", "16MB PSRAM & System Dashboard", "device_modules.png"),
     ]
 
     card_w = 320
@@ -211,7 +211,7 @@ def make_screens_showcase():
     card_y = 200
 
     title_f = get_font(FONT_HEADING, 20)
-    desc_f = get_font(FONT_CN, 16)
+    desc_f = get_font(FONT_TEXT, 16)
 
     for i, (title, desc, filename) in enumerate(screens_meta):
         cx = start_x + i * (card_w + gap_x)
